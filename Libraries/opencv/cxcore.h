@@ -7,10 +7,11 @@
 //  copy or use the software.
 //
 //
-//                        Intel License Agreement
+//                           License Agreement
 //                For Open Source Computer Vision Library
 //
-// Copyright (C) 2000, Intel Corporation, all rights reserved.
+// Copyright (C) 2000-2008, Intel Corporation, all rights reserved.
+// Copyright (C) 2009, Willow Garage Inc., all rights reserved.
 // Third party copyrights are property of their respective owners.
 //
 // Redistribution and use in source and binary forms, with or without modification,
@@ -23,7 +24,7 @@
 //     this list of conditions and the following disclaimer in the documentation
 //     and/or other materials provided with the distribution.
 //
-//   * The name of Intel Corporation may not be used to endorse or promote products
+//   * The name of the copyright holders may not be used to endorse or promote products
 //     derived from this software without specific prior written permission.
 //
 // This software is provided by the copyright holders and contributors "as is" and
@@ -55,7 +56,7 @@
         typedef struct tagBITMAPINFOHEADER BITMAPINFOHEADER;
         typedef int BOOL;
     #endif
-    #if defined WIN32 || defined WIN64
+    #if defined WIN32 || defined _WIN32 || defined WIN64 || defined _WIN64
       #include "ipl.h"
     #else
       #include "ipl/ipl.h"
@@ -113,7 +114,7 @@ CVAPI(void)  cvReleaseImage( IplImage** image );
 /* Creates a copy of IPL image (widthStep may differ) */
 CVAPI(IplImage*) cvCloneImage( const IplImage* image );
 
-/* Sets a Channel Of Interest (only a few functions support COI) - 
+/* Sets a Channel Of Interest (only a few functions support COI) -
    use cvCopy to extract the selected channel and/or put it back */
 CVAPI(void)  cvSetImageCOI( IplImage* image, int coi );
 
@@ -532,7 +533,7 @@ CVAPI(void)  cvSubRS( const CvArr* src, CvScalar value, CvArr* dst,
 CVAPI(void)  cvMul( const CvArr* src1, const CvArr* src2,
                     CvArr* dst, double scale CV_DEFAULT(1) );
 
-/* element-wise division/inversion with scaling: 
+/* element-wise division/inversion with scaling:
     dst(idx) = src1(idx) * scale / src2(idx)
     or dst(idx) = scale / src2(idx) if src1 == 0 */
 CVAPI(void)  cvDiv( const CvArr* src1, const CvArr* src2,
@@ -661,7 +662,7 @@ CVAPI(float)  cvCbrt( float value );
 /* Checks array values for NaNs, Infs or simply for too large numbers
    (if CV_CHECK_RANGE is set). If CV_CHECK_QUIET is set,
    no runtime errors is raised (function returns zero value in case of "bad" values).
-   Otherwise cvError is called */ 
+   Otherwise cvError is called */
 #define  CV_CHECK_RANGE    1
 #define  CV_CHECK_QUIET    2
 CVAPI(int)  cvCheckArr( const CvArr* arr, int flags CV_DEFAULT(0),
@@ -676,8 +677,21 @@ CVAPI(void) cvRandArr( CvRNG* rng, CvArr* arr, int dist_type,
 CVAPI(void) cvRandShuffle( CvArr* mat, CvRNG* rng,
                            double iter_factor CV_DEFAULT(1.));
 
+#define CV_SORT_EVERY_ROW 0
+#define CV_SORT_EVERY_COLUMN 1
+#define CV_SORT_ASCENDING 0
+#define CV_SORT_DESCENDING 16
+
+CVAPI(void) cvSort( const CvArr* src, CvArr* dst CV_DEFAULT(NULL),
+                    CvArr* idxmat CV_DEFAULT(NULL),
+                    int flags CV_DEFAULT(0));
+
 /* Finds real roots of a cubic equation */
 CVAPI(int) cvSolveCubic( const CvMat* coeffs, CvMat* roots );
+
+/* Finds all real and complex roots of a polynomial equation */
+CVAPI(void) cvSolvePoly(const CvMat* coeffs, CvMat *roots2,
+			int maxiter CV_DEFAULT(20), int fig CV_DEFAULT(100));
 
 /****************************************************************************************\
 *                                Matrix operations                                       *
@@ -720,6 +734,8 @@ CVAPI(void) cvMulTransposed( const CvArr* src, CvArr* dst, int order,
 CVAPI(void)  cvTranspose( const CvArr* src, CvArr* dst );
 #define cvT cvTranspose
 
+/* Completes the symmetric matrix from the lower (LtoR=0) or from the upper (LtoR!=0) part */
+CVAPI(void)  cvCompleteSymm( CvMat* matrix, int LtoR CV_DEFAULT(0) );
 
 /* Mirror array data around horizontal (flip=0),
    vertical (flip=1) or both(flip=-1) axises:
@@ -746,6 +762,10 @@ CVAPI(void)   cvSVBkSb( const CvArr* W, const CvArr* U,
 #define CV_LU  0
 #define CV_SVD 1
 #define CV_SVD_SYM 2
+#define CV_CHOLESKY 3
+#define CV_QR  4
+#define CV_NORMAL 16
+
 /* Inverts matrix */
 CVAPI(double)  cvInvert( const CvArr* src, CvArr* dst,
                          int method CV_DEFAULT(CV_LU));
@@ -763,8 +783,14 @@ CVAPI(double) cvDet( const CvArr* mat );
 CVAPI(CvScalar) cvTrace( const CvArr* mat );
 
 /* Finds eigen values and vectors of a symmetric matrix */
-CVAPI(void)  cvEigenVV( CvArr* mat, CvArr* evects,
-                        CvArr* evals, double eps CV_DEFAULT(0));
+CVAPI(void)  cvEigenVV( CvArr* mat, CvArr* evects, CvArr* evals,
+                        double eps CV_DEFAULT(0),
+                        int lowindex CV_DEFAULT(-1),
+                        int highindex CV_DEFAULT(-1));
+
+///* Finds selected eigen values and vectors of a symmetric matrix */
+//CVAPI(void)  cvSelectedEigenVV( CvArr* mat, CvArr* evects, CvArr* evals,
+//                                int lowindex, int highindex );
 
 /* Makes an identity matrix (mat_ij = i == j) */
 CVAPI(void)  cvSetIdentity( CvArr* mat, CvScalar value CV_DEFAULT(cvRealScalar(1)) );
@@ -795,7 +821,7 @@ CVAPI(CvArr*)  cvRange( CvArr* mat, double start, double end );
 CVAPI(void)  cvCalcCovarMatrix( const CvArr** vects, int count,
                                 CvArr* cov_mat, CvArr* avg, int flags );
 
-#define CV_PCA_DATA_AS_ROW 0 
+#define CV_PCA_DATA_AS_ROW 0
 #define CV_PCA_DATA_AS_COL 1
 #define CV_PCA_USE_AVG 2
 CVAPI(void)  cvCalcPCA( const CvArr* data, CvArr* mean,
@@ -808,7 +834,7 @@ CVAPI(void)  cvBackProjectPCA( const CvArr* proj, const CvArr* mean,
                                const CvArr* eigenvects, CvArr* result );
 
 /* Calculates Mahalanobis(weighted) distance */
-CVAPI(double)  cvMahalanobis( const CvArr* vec1, const CvArr* vec2, CvArr* mat );
+CVAPI(double)  cvMahalanobis( const CvArr* vec1, const CvArr* vec2, const CvArr* mat );
 #define cvMahalonobis  cvMahalanobis
 
 /****************************************************************************************\
@@ -951,11 +977,11 @@ CVAPI(void)  cvSetSeqBlockSize( CvSeq* seq, int delta_elems );
 
 
 /* Adds new element to the end of sequence. Returns pointer to the element */
-CVAPI(char*)  cvSeqPush( CvSeq* seq, void* element CV_DEFAULT(NULL));
+CVAPI(schar*)  cvSeqPush( CvSeq* seq, const void* element CV_DEFAULT(NULL));
 
 
 /* Adds new element to the beginning of sequence. Returns pointer to it */
-CVAPI(char*)  cvSeqPushFront( CvSeq* seq, void* element CV_DEFAULT(NULL));
+CVAPI(schar*)  cvSeqPushFront( CvSeq* seq, const void* element CV_DEFAULT(NULL));
 
 
 /* Removes the last element from sequence and optionally saves it */
@@ -969,7 +995,7 @@ CVAPI(void)  cvSeqPopFront( CvSeq* seq, void* element CV_DEFAULT(NULL));
 #define CV_FRONT 1
 #define CV_BACK 0
 /* Adds several new elements to the end of sequence */
-CVAPI(void)  cvSeqPushMulti( CvSeq* seq, void* elements,
+CVAPI(void)  cvSeqPushMulti( CvSeq* seq, const void* elements,
                              int count, int in_front CV_DEFAULT(0) );
 
 /* Removes several elements from the end of sequence and optionally saves them */
@@ -978,8 +1004,8 @@ CVAPI(void)  cvSeqPopMulti( CvSeq* seq, void* elements,
 
 /* Inserts a new element in the middle of sequence.
    cvSeqInsert(seq,0,elem) == cvSeqPushFront(seq,elem) */
-CVAPI(char*)  cvSeqInsert( CvSeq* seq, int before_index,
-                           void* element CV_DEFAULT(NULL));
+CVAPI(schar*)  cvSeqInsert( CvSeq* seq, int before_index,
+                            const void* element CV_DEFAULT(NULL));
 
 /* Removes specified sequence element */
 CVAPI(void)  cvSeqRemove( CvSeq* seq, int index );
@@ -991,10 +1017,10 @@ CVAPI(void)  cvSeqRemove( CvSeq* seq, int index );
 CVAPI(void)  cvClearSeq( CvSeq* seq );
 
 
-/* Retrives pointer to specified sequence element.
+/* Retrieves pointer to specified sequence element.
    Negative indices are supported and mean counting from the end
    (e.g -1 means the last sequence element) */
-CVAPI(char*)  cvGetSeqElem( const CvSeq* seq, int index );
+CVAPI(schar*)  cvGetSeqElem( const CvSeq* seq, int index );
 
 /* Calculates index of the specified sequence element.
    Returns -1 if element does not belong to the sequence */
@@ -1071,9 +1097,9 @@ typedef int (CV_CDECL* CvCmpFunc)(const void* a, const void* b, void* userdata )
 CVAPI(void) cvSeqSort( CvSeq* seq, CvCmpFunc func, void* userdata CV_DEFAULT(NULL) );
 
 /* Finds element in a [sorted] sequence */
-CVAPI(char*) cvSeqSearch( CvSeq* seq, const void* elem, CvCmpFunc func,
-                          int is_sorted, int* elem_idx,
-                          void* userdata CV_DEFAULT(NULL) );
+CVAPI(schar*) cvSeqSearch( CvSeq* seq, const void* elem, CvCmpFunc func,
+                           int is_sorted, int* elem_idx,
+                           void* userdata CV_DEFAULT(NULL) );
 
 /* Reverses order of sequence elements in-place */
 CVAPI(void) cvSeqInvert( CvSeq* seq );
@@ -1298,21 +1324,22 @@ CV_INLINE  void  cvEllipseBox( CvArr* img, CvBox2D box, CvScalar color,
     CvSize axes;
     axes.width = cvRound(box.size.height*0.5);
     axes.height = cvRound(box.size.width*0.5);
-    
+
     cvEllipse( img, cvPointFrom32f( box.center ), axes, box.angle,
                0, 360, color, thickness, line_type, shift );
 }
 
 /* Fills convex or monotonous polygon. */
-CVAPI(void)  cvFillConvexPoly( CvArr* img, CvPoint* pts, int npts, CvScalar color,
+CVAPI(void)  cvFillConvexPoly( CvArr* img, const CvPoint* pts, int npts, CvScalar color,
                                int line_type CV_DEFAULT(8), int shift CV_DEFAULT(0));
 
 /* Fills an area bounded by one or more arbitrary polygons */
-CVAPI(void)  cvFillPoly( CvArr* img, CvPoint** pts, int* npts, int contours, CvScalar color,
+CVAPI(void)  cvFillPoly( CvArr* img, CvPoint** pts, const int* npts,
+                         int contours, CvScalar color,
                          int line_type CV_DEFAULT(8), int shift CV_DEFAULT(0) );
 
 /* Draws one or more polygonal curves */
-CVAPI(void)  cvPolyLine( CvArr* img, CvPoint** pts, int* npts, int contours,
+CVAPI(void)  cvPolyLine( CvArr* img, CvPoint** pts, const int* npts, int contours,
                          int is_closed, CvScalar color, int thickness CV_DEFAULT(1),
                          int line_type CV_DEFAULT(8), int shift CV_DEFAULT(0) );
 
@@ -1350,14 +1377,14 @@ CVAPI(int)  cvInitLineIterator( const CvArr* image, CvPoint pt1, CvPoint pt2,
 #define CV_FONT_HERSHEY_SIMPLEX         0
 #define CV_FONT_HERSHEY_PLAIN           1
 #define CV_FONT_HERSHEY_DUPLEX          2
-#define CV_FONT_HERSHEY_COMPLEX         3 
+#define CV_FONT_HERSHEY_COMPLEX         3
 #define CV_FONT_HERSHEY_TRIPLEX         4
 #define CV_FONT_HERSHEY_COMPLEX_SMALL   5
 #define CV_FONT_HERSHEY_SCRIPT_SIMPLEX  6
 #define CV_FONT_HERSHEY_SCRIPT_COMPLEX  7
 
 /* font flags */
-#define CV_FONT_ITALIC                 16  
+#define CV_FONT_ITALIC                 16
 
 #define CV_FONT_VECTOR0    CV_FONT_HERSHEY_SIMPLEX
 
@@ -1415,10 +1442,10 @@ CVAPI(int) cvEllipse2Poly( CvPoint center, CvSize axes,
 
 /* Draws contour outlines or filled interiors on the image */
 CVAPI(void)  cvDrawContours( CvArr *img, CvSeq* contour,
-                            CvScalar external_color, CvScalar hole_color,
-                            int max_level, int thickness CV_DEFAULT(1),
-                            int line_type CV_DEFAULT(8),
-                            CvPoint offset CV_DEFAULT(cvPoint(0,0)));
+                             CvScalar external_color, CvScalar hole_color,
+                             int max_level, int thickness CV_DEFAULT(1),
+                             int line_type CV_DEFAULT(8),
+                             CvPoint offset CV_DEFAULT(cvPoint(0,0)));
 
 /* Does look-up transformation. Elements of the source array
    (that should be 8uC1 or 8sC1) are used as indexes in lutarr 256-element table */
@@ -1454,8 +1481,11 @@ CVAPI(CvSeq*) cvTreeToNodeSeq( const void* first, int header_size,
 
 /* The function implements the K-means algorithm for clustering an array of sample
    vectors in a specified number of classes */
-CVAPI(void)  cvKMeans2( const CvArr* samples, int cluster_count,
-                        CvArr* labels, CvTermCriteria termcrit );
+#define CV_KMEANS_USE_INITIAL_LABELS    1
+CVAPI(int) cvKMeans2( const CvArr* samples, int cluster_count, CvArr* labels,
+                      CvTermCriteria termcrit, int attempts CV_DEFAULT(1),
+                      CvRNG* rng CV_DEFAULT(0), int flags CV_DEFAULT(0),
+                      CvArr* _centers CV_DEFAULT(0), double* compactness CV_DEFAULT(0) );
 
 /****************************************************************************************\
 *                                    System functions                                    *
@@ -1741,10 +1771,356 @@ CVAPI(void) cvSetNumThreads( int threads CV_DEFAULT(0) );
 /* get index of the thread being executed */
 CVAPI(int)  cvGetThreadNum( void );
 
+/*************** Convenience functions for better interaction with HighGUI **************/
+
+typedef IplImage* (CV_CDECL * CvLoadImageFunc)( const char* filename, int colorness );
+typedef CvMat* (CV_CDECL * CvLoadImageMFunc)( const char* filename, int colorness );
+typedef int (CV_CDECL * CvSaveImageFunc)( const char* filename, const CvArr* image,
+                                          const int* params );
+typedef void (CV_CDECL * CvShowImageFunc)( const char* windowname, const CvArr* image );
+
+CVAPI(int) cvSetImageIOFunctions( CvLoadImageFunc _load_image, CvLoadImageMFunc _load_image_m,
+                            CvSaveImageFunc _save_image, CvShowImageFunc _show_image );
+
+#define CV_SET_IMAGE_IO_FUNCTIONS() \
+    cvSetImageIOFunctions( cvLoadImage, cvLoadImageM, cvSaveImage, cvShowImage )
+
 #ifdef __cplusplus
 }
 
-#include "cxcore.hpp"
+class CV_EXPORTS CvImage
+{
+public:
+    CvImage() : image(0), refcount(0) {}
+    CvImage( CvSize size, int depth, int channels )
+    {
+        image = cvCreateImage( size, depth, channels );
+        refcount = image ? new int(1) : 0;
+    }
+
+    CvImage( IplImage* img ) : image(img)
+    {
+        refcount = image ? new int(1) : 0;
+    }
+
+    CvImage( const CvImage& img ) : image(img.image), refcount(img.refcount)
+    {
+        if( refcount ) ++(*refcount);
+    }
+
+    CvImage( const char* filename, const char* imgname=0, int color=-1 ) : image(0), refcount(0)
+    { load( filename, imgname, color ); }
+
+    CvImage( CvFileStorage* fs, const char* mapname, const char* imgname ) : image(0), refcount(0)
+    { read( fs, mapname, imgname ); }
+
+    CvImage( CvFileStorage* fs, const char* seqname, int idx ) : image(0), refcount(0)
+    { read( fs, seqname, idx ); }
+
+    ~CvImage()
+    {
+        if( refcount && !(--*refcount) )
+        {
+            cvReleaseImage( &image );
+            delete refcount;
+        }
+    }
+
+    CvImage clone() { return CvImage(image ? cvCloneImage(image) : 0); }
+
+    void create( CvSize size, int depth, int channels )
+    {
+        if( !image || !refcount ||
+            image->width != size.width || image->height != size.height ||
+            image->depth != depth || image->nChannels != channels )
+            attach( cvCreateImage( size, depth, channels ));
+    }
+
+    void release() { detach(); }
+    void clear() { detach(); }
+
+    void attach( IplImage* img, bool use_refcount=true )
+    {
+        if( refcount && --*refcount == 0 )
+        {
+            cvReleaseImage( &image );
+            delete refcount;
+        }
+        image = img;
+        refcount = use_refcount && image ? new int(1) : 0;
+    }
+
+    void detach()
+    {
+        if( refcount && --*refcount == 0 )
+        {
+            cvReleaseImage( &image );
+            delete refcount;
+        }
+        image = 0;
+        refcount = 0;
+    }
+
+    bool load( const char* filename, const char* imgname=0, int color=-1 );
+    bool read( CvFileStorage* fs, const char* mapname, const char* imgname );
+    bool read( CvFileStorage* fs, const char* seqname, int idx );
+    void save( const char* filename, const char* imgname, const int* params=0 );
+    void write( CvFileStorage* fs, const char* imgname );
+
+    void show( const char* window_name );
+    bool is_valid() { return image != 0; }
+
+    int width() const { return image ? image->width : 0; }
+    int height() const { return image ? image->height : 0; }
+
+    CvSize size() const { return image ? cvSize(image->width, image->height) : cvSize(0,0); }
+
+    CvSize roi_size() const
+    {
+        return !image ? cvSize(0,0) :
+            !image->roi ? cvSize(image->width,image->height) :
+            cvSize(image->roi->width, image->roi->height);
+    }
+
+    CvRect roi() const
+    {
+        return !image ? cvRect(0,0,0,0) :
+            !image->roi ? cvRect(0,0,image->width,image->height) :
+            cvRect(image->roi->xOffset,image->roi->yOffset,
+                   image->roi->width,image->roi->height);
+    }
+
+    int coi() const { return !image || !image->roi ? 0 : image->roi->coi; }
+
+    void set_roi(CvRect roi) { cvSetImageROI(image,roi); }
+    void reset_roi() { cvResetImageROI(image); }
+    void set_coi(int coi) { cvSetImageCOI(image,coi); }
+    int depth() const { return image ? image->depth : 0; }
+    int channels() const { return image ? image->nChannels : 0; }
+    int pix_size() const { return image ? ((image->depth & 255)>>3)*image->nChannels : 0; }
+
+    uchar* data() { return image ? (uchar*)image->imageData : 0; }
+    const uchar* data() const { return image ? (const uchar*)image->imageData : 0; }
+    int step() const { return image ? image->widthStep : 0; }
+    int origin() const { return image ? image->origin : 0; }
+
+    uchar* roi_row(int y)
+    {
+        assert(0<=y);
+        assert(!image ?
+                1 : image->roi ?
+                y<image->roi->height : y<image->height);
+        
+        return !image ? 0 :
+            !image->roi ?
+                (uchar*)(image->imageData + y*image->widthStep) :
+                (uchar*)(image->imageData + (y+image->roi->yOffset)*image->widthStep +
+                image->roi->xOffset*((image->depth & 255)>>3)*image->nChannels);
+    }
+
+    const uchar* roi_row(int y) const
+    {
+        assert(0<=y);
+        assert(!image ?
+                1 : image->roi ?
+                y<image->roi->height : y<image->height); 
+
+        return !image ? 0 :
+            !image->roi ?
+                (const uchar*)(image->imageData + y*image->widthStep) :
+                (const uchar*)(image->imageData + (y+image->roi->yOffset)*image->widthStep +
+                image->roi->xOffset*((image->depth & 255)>>3)*image->nChannels);
+    }
+
+    operator const IplImage* () const { return image; }
+    operator IplImage* () { return image; }
+
+    CvImage& operator = (const CvImage& img)
+    {
+        if( img.refcount )
+            ++*img.refcount;
+        if( refcount && !(--*refcount) )
+            cvReleaseImage( &image );
+        image=img.image;
+        refcount=img.refcount;
+        return *this;
+    }
+
+protected:
+    IplImage* image;
+    int* refcount;
+};
+
+
+class CV_EXPORTS CvMatrix
+{
+public:
+    CvMatrix() : matrix(0) {}
+    CvMatrix( int rows, int cols, int type )
+    { matrix = cvCreateMat( rows, cols, type ); }
+
+    CvMatrix( int rows, int cols, int type, CvMat* hdr,
+              void* data=0, int step=CV_AUTOSTEP )
+    { matrix = cvInitMatHeader( hdr, rows, cols, type, data, step ); }
+
+    CvMatrix( int rows, int cols, int type, CvMemStorage* storage, bool alloc_data=true );
+
+    CvMatrix( int rows, int cols, int type, void* data, int step=CV_AUTOSTEP )
+    { matrix = cvCreateMatHeader( rows, cols, type );
+      cvSetData( matrix, data, step ); }
+
+    CvMatrix( CvMat* m )
+    { matrix = m; }
+
+    CvMatrix( const CvMatrix& m )
+    {
+        matrix = m.matrix;
+        addref();
+    }
+
+    CvMatrix( const char* filename, const char* matname=0, int color=-1 ) : matrix(0)
+    {  load( filename, matname, color ); }
+
+    CvMatrix( CvFileStorage* fs, const char* mapname, const char* matname ) : matrix(0)
+    {  read( fs, mapname, matname ); }
+
+    CvMatrix( CvFileStorage* fs, const char* seqname, int idx ) : matrix(0)
+    {  read( fs, seqname, idx ); }
+
+    ~CvMatrix()
+    {
+        release();
+    }
+
+    CvMatrix clone() { return CvMatrix(matrix ? cvCloneMat(matrix) : 0); }
+
+    void set( CvMat* m, bool add_ref )
+    {
+        release();
+        matrix = m;
+        if( add_ref )
+            addref();
+    }
+
+    void create( int rows, int cols, int type )
+    {
+        if( !matrix || !matrix->refcount ||
+            matrix->rows != rows || matrix->cols != cols ||
+            CV_MAT_TYPE(matrix->type) != type )
+            set( cvCreateMat( rows, cols, type ), false );
+    }
+
+    void addref() const
+    {
+        if( matrix )
+        {
+            if( matrix->hdr_refcount )
+                ++matrix->hdr_refcount;
+            else if( matrix->refcount )
+                ++*matrix->refcount;
+        }
+    }
+
+    void release()
+    {
+        if( matrix )
+        {
+            if( matrix->hdr_refcount )
+            {
+                if( --matrix->hdr_refcount == 0 )
+                    cvReleaseMat( &matrix );
+            }
+            else if( matrix->refcount )
+            {
+                if( --*matrix->refcount == 0 )
+                    cvFree( &matrix->refcount );
+            }
+            matrix = 0;
+        }
+    }
+
+    void clear()
+    {
+        release();
+    }
+
+    bool load( const char* filename, const char* matname=0, int color=-1 );
+    bool read( CvFileStorage* fs, const char* mapname, const char* matname );
+    bool read( CvFileStorage* fs, const char* seqname, int idx );
+    void save( const char* filename, const char* matname, const int* params=0 );
+    void write( CvFileStorage* fs, const char* matname );
+
+    void show( const char* window_name );
+
+    bool is_valid() { return matrix != 0; }
+
+    int rows() const { return matrix ? matrix->rows : 0; }
+    int cols() const { return matrix ? matrix->cols : 0; }
+
+    CvSize size() const
+    {
+        return !matrix ? cvSize(0,0) : cvSize(matrix->rows,matrix->cols);
+    }
+
+    int type() const { return matrix ? CV_MAT_TYPE(matrix->type) : 0; }
+    int depth() const { return matrix ? CV_MAT_DEPTH(matrix->type) : 0; }
+    int channels() const { return matrix ? CV_MAT_CN(matrix->type) : 0; }
+    int pix_size() const { return matrix ? CV_ELEM_SIZE(matrix->type) : 0; }
+
+    uchar* data() { return matrix ? matrix->data.ptr : 0; }
+    const uchar* data() const { return matrix ? matrix->data.ptr : 0; }
+    int step() const { return matrix ? matrix->step : 0; }
+
+    void set_data( void* data, int step=CV_AUTOSTEP )
+    { cvSetData( matrix, data, step ); }
+
+    uchar* row(int i) { return !matrix ? 0 : matrix->data.ptr + i*matrix->step; }
+    const uchar* row(int i) const
+    { return !matrix ? 0 : matrix->data.ptr + i*matrix->step; }
+
+    operator const CvMat* () const { return matrix; }
+    operator CvMat* () { return matrix; }
+
+    CvMatrix& operator = (const CvMatrix& _m)
+    {
+        _m.addref();
+        release();
+        matrix = _m.matrix;
+        return *this;
+    }
+
+protected:
+    CvMat* matrix;
+};
+
+
+// classes for automatic module/RTTI data registration/unregistration
+struct CV_EXPORTS CvModule
+{
+    CvModule( CvModuleInfo* _info );
+    ~CvModule();
+    CvModuleInfo* info;
+
+    static CvModuleInfo* first;
+    static CvModuleInfo* last;
+};
+
+struct CV_EXPORTS CvType
+{
+    CvType( const char* type_name,
+            CvIsInstanceFunc is_instance, CvReleaseFunc release=0,
+            CvReadFunc read=0, CvWriteFunc write=0, CvCloneFunc clone=0 );
+    ~CvType();
+    CvTypeInfo* info;
+
+    static CvTypeInfo* first;
+    static CvTypeInfo* last;
+};
+
 #endif
+
+#ifndef SKIP_INCLUDES // for now only expose old interface to swig
+#include "cxcore.hpp"
+#endif // SKIP_INCLUDES
 
 #endif /*_CXCORE_H_*/

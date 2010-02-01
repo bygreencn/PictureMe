@@ -34,11 +34,26 @@ static CvMemStorage *storage = 0;
 
 
 - (void)viewDidLoad {
-    self.camera = [[UIImagePickerController alloc] init];
-    camera.sourceType = UIImagePickerControllerSourceTypeCamera;
-    camera.delegate = self;
-    camera.showsCameraControls = NO;
-    camera.cameraOverlayView = self.view;
+    if ([UIImagePickerController isSourceTypeAvailable:UIImagePickerControllerSourceTypeCamera]) {
+		self.camera = [[UIImagePickerController alloc] init];
+		self.camera.videoQuality = UIImagePickerControllerQualityTypeHigh;
+		self.camera.sourceType = UIImagePickerControllerSourceTypeCamera;
+		self.camera.delegate = self;
+		self.camera.showsCameraControls = NO;
+		camera.cameraOverlayView = self.view;		
+	} 
+	else 
+	{
+		UIAlertView *alert = [[UIAlertView alloc] initWithTitle:@"Camera is not exit!" 
+														message:nil 
+													   delegate:self 
+											  cancelButtonTitle:@"OK" 
+											  otherButtonTitles:nil, 
+							  nil];
+		[alert show];
+		[alert release];
+	}
+	
     
     camerabar = [[PictureMeCameraBar alloc] initWithFrame:CGRectMake(0, 480 - 53, 320, 53)];
     camerabar.delegate = self;
@@ -59,8 +74,10 @@ static CvMemStorage *storage = 0;
 
 
 - (void)viewDidAppear:(BOOL)animated {
-    [self presentModalViewController:camera animated:NO]; 
-    [self startDetection];
+	if(nil != camera){ 
+		[self presentModalViewController:camera animated:NO]; 
+		[self startDetection];
+	}
 }
 
 
